@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results - Exa GitHub Search{% endblock %}
+
+{% block extra_css %}
+<style>
+    .highlight {
+        background-color: #ffffcc;
+    }
+
+    .search-snippet {
+        font-family: monospace;
+        font-size: 0.9rem;
+        overflow-x: auto;
+        max-height: 150px;
+    }
+
+    .relevance-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+
+    .result-card {
+        position: relative;
+        transition: transform 0.2s;
+    }
+
+    .result-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-badge {
+        margin-right: 10px;
+    }
+
+    .repo-language {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2>
+            <i class="fas fa-search me-2"></i>
+            Search Results
+        </h2>
+        <p class="text-muted">
+            Found {{ results.total_count }} results for "{{ results.query }}"
+            in {{ results.search_type }}
+        </p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-search me-2"></i>New Search
+        </a>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form action="{{ url_for('search.search') }}" method="post" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="query" value="{{ search_params.query }}">
+            <input type="hidden" name="type" value="{{ search_params.type }}">
+
+            <!-- Add a new column for topic filtering -->
+            <div class="col-md-2">
+                <label for="topics_filter" class="form-label">Topics</label>
+                <input type="text" class="form-select" id="topics_filter" name="topics" placeholder="Filter by topics"
+                    value="{{ search_params.topics|join(', ') }}">
+            </div>
+
+            <div class="col-md-2">
+                <label for="sort" class="form-label">Sort by</label>
+                <select class="form-select" id="sort" name="sort">
+                    <option value="best_match">Best Match</option>
+                    <option value="stars">Stars</option>
+                    <option value="forks">Forks</option>
+                    <option value="updated">Recently Updated</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="language_filter" class="form-label">Language</label>
+                <select class="form-select" id="language_filter" name="language">
+                    <option value="">Any</option>
+                    <option value="javascript" {% if search_params.language=='javascript' %}selected{% endif %}>
+                        JavaScript</option>
+                    <option value="python" {% if search_params.language=='python' %}selected{% endif %}>Python</option>
+                    <option value="java" {% if search_params.language=='java' %}selected{% endif %}>Java</option>
+                    <!-- Add more languages as needed -->
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="per_page" class="form-label">Results per page</label>
+                <select class="form-select" id="per_page" name="per_page">
+                    <option value="10" {% if per_page==10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="enhance_with_exa" name="enhance_with_exa" {% if
+                        enhance_with_exa %}checked{% endif %}>
+                    <label class="form-check-label" for="enhance_with_exa">
+                        Enhance with Exa
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+
+            <!-- Advanced filters toggleable section -->
+            <div class="col-12">
+                <div class="collapse" id="advancedFilters">
+                    <div class="card card-body mt-2">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="subtopics_filter" class="form-label">Subtopics</label>
+                                <input type="text" class="form-control" id="subtopics_filter" name="subtopics"
+                                    placeholder="Filter by subtopics" value="{{ search_params.subtopics|join(', ') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="tags_filter" class="form-label">Tags</label>
+                                <input type="text" class="form-control" id="tags_filter" name="tags"
+                                    placeholder="Filter by tags" value="{{ search_params.tags|join(', ') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="exclude_topics_filter" class="form-label">Exclude Topics</label>
+                                <input type="text" class="form-control" id="exclude_topics_filter" name="exclude_topics"
+                                    placeholder="Exclude topics" value="{{ search_params.exclude_topics|join(', ') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="include_forks"
+                                        name="include_forks" {% if search_params.include_forks %}checked{% endif %}>
+                                    <label class="form-check-label" for="include_forks">
+                                        Include forks
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-link btn-sm mt-2" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#advancedFilters">
+                    <i class="fas fa-sliders-h me-1"></i> Advanced Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if results.search_type == "repositories" %}
+<!-- Repository Results -->
+<div class="row">
+    {% for repo in results.repositories %}
+    <div class="col-md-6 mb-4">
+        <div class="card result-card h-100 shadow-sm">
+            {% if repo.relevance_score %}
+            <div class="relevance-badge">
+                <span class="badge bg-primary" data-bs-toggle="tooltip" title="Exa Relevance Score">
+                    {{ "%.2f"|format(repo.relevance_score) }}
+                </span>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">
+                    <a href="{{ repo.html_url }}" target="_blank" class="text-decoration-none">
+                        {{ repo.full_name }}
+                    </a>
+                </h5>
+                <p class="card-text text-muted">
+                    {{ repo.description or "No description available" }}
+                </p>
+                <div class="d-flex align-items-center mb-3">
+                    {% if repo.language %}
+                    <div class="me-3">
+                        <span class="repo-language" style="background-color: {% if repo.language == 'JavaScript' %}#f1e05a
+                                                                              {% elif repo.language == 'Python' %}#3572A5
+                                                                              {% elif repo.language == 'Java' %}#b07219
+                                                                              {% elif repo.language == 'Go' %}#00ADD8
+                                                                              {% else %}#777777{% endif %}"></span>
+                        {{ repo.language }}
+                    </div>
+                    {% endif %}
+
+                    <div class="stats-badge">
+                        <i class="fas fa-star text-warning"></i> {{ repo.stargazers_count }}
+                    </div>
+                    <div class="stats-badge">
+                        <i class="fas fa-code-branch"></i> {{ repo.forks_count }}
+                    </div>
+                    <div>
+                        <i class="fas fa-exclamation-circle text-danger"></i> {{ repo.open_issues_count }}
+                    </div>
+                </div>
+
+                {% if repo.topics %}
+                <div class="mb-3">
+                    <h6 class="small text-muted mb-2">Topics & Tags:</h6>
+                    {% for topic in repo.topics %}
+                    {% if topic.startswith('subtopic-') %}
+                    <span class="badge bg-info me-1" data-bs-toggle="tooltip" title="Subtopic">{{ topic[9:] }}</span>
+                    {% elif topic.startswith('tag-') %}
+                    <span class="badge bg-warning text-dark me-1" data-bs-toggle="tooltip" title="Tag">{{ topic[4:]
+                        }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary me-1" data-bs-toggle="tooltip" title="Topic">{{ topic }}</span>
+                    {% endif %}
+                    {% endfor %}
+                    {% if repo.topics|length > 15 %}
+                    <span class="badge bg-light text-dark">+{{ repo.topics|length - 15 }} more</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if repo.exa_content %}
+                <div class="mt-3">
+                    <h6><i class="fas fa-brain text-primary me-2"></i>Semantic Match</h6>
+                    <div class="search-snippet p-2 bg-light rounded">
+                        {{ repo.exa_content|truncate(200) }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white text-muted small">
+                <div class="row">
+                    <div class="col">
+                        <i class="far fa-calendar-alt me-1"></i> Created: {{ repo.created_at|default('-',
+                        true)|replace('T', ' ')|replace('Z', '')|truncate(16, true, "") }}
+                    </div>
+                    <div class="col text-end">
+                        <i class="fas fa-sync-alt me-1"></i> Updated: {{ repo.pushed_at|default('-', true)|replace('T',
+                        ' ')|replace('Z', '')|truncate(16, true, "") }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% elif results.search_type == "code" %}
+<!-- Code Results -->
+<div class="row">
+    {% for code in results.code_results %}
+    <div class="col-12 mb-4">
+        <div class="card result-card shadow-sm">
+            {% if code.relevance_score %}
+            <div class="relevance-badge">
+                <span class="badge bg-primary" data-bs-toggle="tooltip" title="Exa Relevance Score">
+                    {{ "%.2f"|format(code.relevance_score) }}
+                </span>
+            </div>
+            {% endif %}
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <a href="{{ code.html_url }}" target="_blank" class="text-decoration-none">
+                            {{ code.repository.full_name }} / {{ code.path }}
+                        </a>
+                    </h5>
+                    <span class="badge bg-secondary">{{ code.path.split('.')|last }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if code.text_matches %}
+                <div class="search-snippet p-3 bg-light rounded">
+                    <pre class="mb-0"><code>{{ code.text_matches[0].fragment }}</code></pre>
+                </div>
+                {% elif code.exa_content %}
+                <div class="search-snippet p-3 bg-light rounded">
+                    <pre class="mb-0"><code>{{ code.exa_content }}</code></pre>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% elif results.search_type == "issues" %}
+<!-- Issue Results -->
+<div class="row">
+    {% for issue in results.issues %}
+    <div class="col-12 mb-4">
+        <div class="card result-card shadow-sm">
+            {% if issue.relevance_score %}
+            <div class="relevance-badge">
+                <span class="badge bg-primary" data-bs-toggle="tooltip" title="Exa Relevance Score">
+                    {{ "%.2f"|format(issue.relevance_score) }}
+                </span>
+            </div>
+            {% endif %}
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <a href="{{ issue.html_url }}" target="_blank" class="text-decoration-none">
+                            {{ issue.title }}
+                        </a>
+                    </h5>
+                    <span class="badge {{ 'bg-success' if issue.state == 'open' else 'bg-secondary' }}">
+                        {{ issue.state }}
+                    </span>
+                </div>
+                <div class="text-muted small">
+                    {{ issue.repository_url.split('/')[-1] if issue.repository_url else "" }} #{{ issue.number }}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    {% for label in issue.labels %}
+                    <span class="badge me-1" style="background-color: #{{ label.color }}">{{ label.name }}</span>
+                    {% endfor %}
+                </div>
+
+                {% if issue.body %}
+                <div class="search-snippet p-3 bg-light rounded">
+                    {{ issue.body|truncate(300) }}
+                </div>
+                {% elif issue.exa_content %}
+                <div class="search-snippet p-3 bg-light rounded">
+                    {{ issue.exa_content|truncate(300) }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white text-muted small">
+                <div class="row">
+                    <div class="col">
+                        <i class="far fa-user me-1"></i> {{ issue.user.login }}
+                    </div>
+                    <div class="col text-center">
+                        <i class="far fa-calendar-alt me-1"></i> Created: {{ issue.created_at|default('-',
+                        true)|replace('T', ' ')|replace('Z', '')|truncate(16, true, "") }}
+                    </div>
+                    <div class="col text-end">
+                        <i class="far fa-comment me-1"></i> {{ issue.comments }} comments
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% elif results.search_type == "users" %}
+<!-- User Results -->
+<div class="row">
+    {% for user in results.users %}
+    <div class="col-md-4 mb-4">
+        <div class="card result-card h-100 shadow-sm text-center">
+            {% if user.relevance_score %}
+            <div class="relevance-badge">
+                <span class="badge bg-primary" data-bs-toggle="tooltip" title="Exa Relevance Score">
+                    {{ "%.2f"|format(user.relevance_score) }}
+                </span>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <img src="{{ user.avatar_url if user.avatar_url else 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png' }}"
+                    class="rounded-circle mb-3" width="100" height="100" alt="{{ user.login }}">
+                <h5 class="card-title">
+                    <a href="{{ user.html_url }}" target="_blank" class="text-decoration-none">
+                        {{ user.name or user.login }}
+                    </a>
+                </h5>
+                <p class="text-muted">@{{ user.login }}</p>
+
+                {% if user.bio %}
+                <p class="card-text">{{ user.bio }}</p>
+                {% endif %}
+
+                <div class="row mt-3">
+                    <div class="col">
+                        <div class="stats-badge">
+                            <div><i class="fas fa-book text-primary"></i></div>
+                            <div>{{ user.public_repos }}</div>
+                            <div class="small">Repos</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stats-badge">
+                            <div><i class="fas fa-users text-success"></i></div>
+                            <div>{{ user.followers }}</div>
+                            <div class="small">Followers</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stats-badge">
+                            <div><i class="fas fa-user-friends text-info"></i></div>
+                            <div>{{ user.following }}</div>
+                            <div class="small">Following</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white text-muted small">
+                <i class="far fa-calendar-alt me-1"></i> Joined: {{ user.created_at|default('-', true)|replace('T', '
+                ')|replace('Z', '')|truncate(10, true, "") }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Pagination -->
+{% if results.total_count > per_page %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Search results pages">
+        <ul class="pagination">
+            {% if page > 1 %}
+            <li class="page-item">
+                <button type="submit" name="page" value="{{ page - 1 }}" form="pagination-form" class="page-link">
+                    Previous
+                </button>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Previous</span>
+            </li>
+            {% endif %}
+
+            {% for p in range(max(1, page - 2), min(page + 3, (results.total_count // per_page) + 1)) %}
+            <li class="page-item {{ 'active' if p == page }}">
+                <button type="submit" name="page" value="{{ p }}" form="pagination-form" class="page-link">
+                    {{ p }}
+                </button>
+            </li>
+            {% endfor %}
+
+            {% if results.has_next_page %}
+            <li class="page-item">
+                <button type="submit" name="page" value="{{ page + 1 }}" form="pagination-form" class="page-link">
+                    Next
+                </button>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Next</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- Hidden form for pagination -->
+<form id="pagination-form" method="post" action="{{ url_for('search.search') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="query" value="{{ search_params.query }}">
+    <input type="hidden" name="type" value="{{ search_params.type }}">
+    <input type="hidden" name="language" value="{{ search_params.language or '' }}">
+    <input type="hidden" name="min_stars" value="{{ search_params.stars[0] if search_params.stars else '' }}">
+    <input type="hidden" name="max_stars" value="{{ search_params.stars[1] if search_params.stars else '' }}">
+    <input type="hidden" name="min_forks" value="{{ search_params.forks[0] if search_params.forks else '' }}">
+    <input type="hidden" name="max_forks" value="{{ search_params.forks[1] if search_params.forks else '' }}">
+    <input type="hidden" name="created" value="{{ search_params.created or '' }}">
+    <input type="hidden" name="pushed" value="{{ search_params.pushed or '' }}">
+    <input type="hidden" name="user" value="{{ search_params.user or '' }}">
+    <input type="hidden" name="org" value="{{ search_params.org or '' }}">
+    <input type="hidden" name="is_public" value="on" {% if search_params.is_public %}checked{% endif %}>
+    <input type="hidden" name="include_forks" value="on" {% if search_params.include_forks %}checked{% endif %}>
+    <input type="hidden" name="topics" value="{{ search_params.topics|join(', ') }}">
+    <input type="hidden" name="subtopics" value="{{ search_params.subtopics|join(', ') }}">
+    <input type="hidden" name="tags" value="{{ search_params.tags|join(', ') }}">
+    <input type="hidden" name="exclude_topics" value="{{ search_params.exclude_topics|join(', ') }}">
+    <input type="hidden" name="per_page" value="{{ per_page }}">
+    <input type="hidden" name="enhance_with_exa" value="on" {% if enhance_with_exa %}checked{% endif %}>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
+{% endblock %}

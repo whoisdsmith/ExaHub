@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+
+{% block title %}Exa GitHub Search - Advanced GitHub Search with Semantic Intelligence{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">
+                    <i class="fas fa-search me-2"></i>Advanced GitHub Search
+                </h2>
+            </div>
+            <div class="card-body">
+                {% if not github_token_available %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> GitHub API token not configured. Search functionality will be limited.
+                </div>
+                {% endif %}
+
+                {% if not exa_api_key_available %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> Exa API key not configured. Semantic search enhancement will be disabled.
+                </div>
+                {% endif %}
+
+                <form action="{{ url_for('search.search') }}" method="post" class="search-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-4">
+                        <div class="col-lg-9">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control form-control-lg" name="query" id="query"
+                                    placeholder="Search GitHub..." required>
+                                <button class="btn btn-primary btn-lg" type="submit">Search</button>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <select name="type" id="type" class="form-select form-select-lg">
+                                <option value="repositories">Repositories</option>
+                                <option value="code">Code</option>
+                                <option value="issues">Issues</option>
+                                <option value="users">Users</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="accordion" id="searchOptions">
+                        <!-- General Options -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingGeneral">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseGeneral">
+                                    <i class="fas fa-sliders-h me-2"></i> General Options
+                                </button>
+                            </h2>
+                            <div id="collapseGeneral" class="accordion-collapse collapse"
+                                data-bs-parent="#searchOptions">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="language" class="form-label">Language</label>
+                                                <select name="language" id="language" class="form-select">
+                                                    <option value="">Any</option>
+                                                    <option value="javascript">JavaScript</option>
+                                                    <option value="python">Python</option>
+                                                    <option value="java">Java</option>
+                                                    <option value="go">Go</option>
+                                                    <option value="ruby">Ruby</option>
+                                                    <option value="php">PHP</option>
+                                                    <option value="c">C</option>
+                                                    <option value="cpp">C++</option>
+                                                    <option value="csharp">C#</option>
+                                                    <option value="typescript">TypeScript</option>
+                                                    <option value="rust">Rust</option>
+                                                    <option value="swift">Swift</option>
+                                                    <option value="kotlin">Kotlin</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="user" class="form-label">Username</label>
+                                                <input type="text" class="form-control" name="user" id="user"
+                                                    placeholder="e.g., octocat">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="org" class="form-label">Organization</label>
+                                                <input type="text" class="form-control" name="org" id="org"
+                                                    placeholder="e.g., github">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check mb-3 mt-4">
+                                                <input class="form-check-input" type="checkbox" name="is_public"
+                                                    id="is_public" checked>
+                                                <label class="form-check-label" for="is_public">
+                                                    Public repositories only
+                                                </label>
+                                            </div>
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" name="include_forks"
+                                                    id="include_forks">
+                                                <label class="form-check-label" for="include_forks">
+                                                    Include forks
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Topics and Tags Options -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTopics">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseTopics">
+                                    <i class="fas fa-tags me-2"></i> Topics & Tags
+                                </button>
+                            </h2>
+                            <div id="collapseTopics" class="accordion-collapse collapse"
+                                data-bs-parent="#searchOptions">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="topics" class="form-label">Topics (comma separated)</label>
+                                                <input type="text" class="form-control" name="topics" id="topics"
+                                                    placeholder="e.g., machine-learning, ai, neural-networks">
+                                                <small class="text-muted">Filter repositories by topics</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="exclude_topics" class="form-label">Exclude Topics (comma
+                                                    separated)</label>
+                                                <input type="text" class="form-control" name="exclude_topics"
+                                                    id="exclude_topics" placeholder="e.g., deprecated, outdated">
+                                                <small class="text-muted">Exclude repositories with these topics</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="subtopics" class="form-label">Subtopics (comma
+                                                    separated)</label>
+                                                <input type="text" class="form-control" name="subtopics" id="subtopics"
+                                                    placeholder="e.g., transformers, deep-learning">
+                                                <small class="text-muted">Filter repositories by subtopics</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="tags" class="form-label">Tags (comma separated)</label>
+                                                <input type="text" class="form-control" name="tags" id="tags"
+                                                    placeholder="e.g., beginner-friendly, documentation">
+                                                <small class="text-muted">Filter repositories by tags</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Topics help categorize repositories. Subtopics provide more specific
+                                        categorization.
+                                        Tags are additional labels that can be used to filter repositories.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Options -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingStats">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseStats">
+                                    <i class="fas fa-chart-bar me-2"></i> Repository Stats
+                                </button>
+                            </h2>
+                            <div id="collapseStats" class="accordion-collapse collapse" data-bs-parent="#searchOptions">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Stars</label>
+                                                <div class="row g-3">
+                                                    <div class="col">
+                                                        <input type="number" class="form-control" name="min_stars"
+                                                            id="min_stars" placeholder="Min" min="0">
+                                                    </div>
+                                                    <div class="col-auto pt-2">to</div>
+                                                    <div class="col">
+                                                        <input type="number" class="form-control" name="max_stars"
+                                                            id="max_stars" placeholder="Max" min="0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Forks</label>
+                                                <div class="row g-3">
+                                                    <div class="col">
+                                                        <input type="number" class="form-control" name="min_forks"
+                                                            id="min_forks" placeholder="Min" min="0">
+                                                    </div>
+                                                    <div class="col-auto pt-2">to</div>
+                                                    <div class="col">
+                                                        <input type="number" class="form-control" name="max_forks"
+                                                            id="max_forks" placeholder="Max" min="0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date Options -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingDates">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseDates">
+                                    <i class="fas fa-calendar-alt me-2"></i> Date Filters
+                                </button>
+                            </h2>
+                            <div id="collapseDates" class="accordion-collapse collapse" data-bs-parent="#searchOptions">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="created" class="form-label">Created Date</label>
+                                                <input type="text" class="form-control" name="created" id="created"
+                                                    placeholder="e.g., >2022-01-01">
+                                                <small class="form-text text-muted">
+                                                    Format: &gt;YYYY-MM-DD, &lt;YYYY-MM-DD, or YYYY-MM-DD..YYYY-MM-DD
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="pushed" class="form-label">Last Updated Date</label>
+                                                <input type="text" class="form-control" name="pushed" id="pushed"
+                                                    placeholder="e.g., >2023-01-01">
+                                                <small class="form-text text-muted">
+                                                    Format: &gt;YYYY-MM-DD, &lt;YYYY-MM-DD, or YYYY-MM-DD..YYYY-MM-DD
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Exa Options -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingExa">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseExa">
+                                    <i class="fas fa-brain me-2"></i> Semantic Search Options
+                                </button>
+                            </h2>
+                            <div id="collapseExa" class="accordion-collapse collapse" data-bs-parent="#searchOptions">
+                                <div class="accordion-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="enhance_with_exa"
+                                            id="enhance_with_exa" {{ 'checked' if exa_api_key_available else 'disabled'
+                                            }}>
+                                        <label class="form-check-label" for="enhance_with_exa">
+                                            Enhance results with Exa semantic search
+                                        </label>
+                                    </div>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Semantic search uses AI to find results based on meaning, not just keywords.
+                                        This helps find more relevant results even when the exact search terms aren't
+                                        present.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-code fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Advanced GitHub Search</h5>
+                        <p class="card-text">Find repositories, code, issues, and users using GitHub's powerful search
+                            syntax.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Semantic Enhancement</h5>
+                        <p class="card-text">Leverage Exa's AI to find semantically relevant results beyond keyword
+                            matching.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-filter fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Customizable Filters</h5>
+                        <p class="card-text">Narrow down results with filters for language, stars, forks, dates, and
+                            more.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Show appropriate options based on search type
+        const typeSelect = document.getElementById('type');
+        const statsOptions = document.getElementById('headingStats');
+        const topicsOptions = document.getElementById('headingTopics');
+
+        typeSelect.addEventListener('change', function () {
+            const searchType = this.value;
+            if (searchType !== 'repositories') {
+                // Hide repository-specific options
+                statsOptions.style.display = 'none';
+                topicsOptions.style.display = 'none';
+            } else {
+                // Show repository-specific options
+                statsOptions.style.display = 'block';
+                topicsOptions.style.display = 'block';
+            }
+        });
+
+        // Initialize tag input fields for better UX
+        const tagInputs = document.querySelectorAll('#topics, #subtopics, #tags, #exclude_topics');
+        tagInputs.forEach(input => {
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const value = this.value.trim();
+                    if (value.slice(-1) !== ',') {
+                        this.value = value + ', ';
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
