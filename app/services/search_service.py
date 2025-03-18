@@ -2,8 +2,8 @@ import os
 import requests
 from typing import Dict, Any, Optional, List, Union
 import logging
-from exa_github_search.app.models.search_params import GitHubSearchParams
-from exa_github_search.app.models.search_result import SearchResults, GitHubRepository, GitHubCodeResult, GitHubIssueResult, GitHubUserResult
+from app.models.search_params import GitHubSearchParams
+from app.models.search_result import SearchResults, GitHubRepository, GitHubCodeResult, GitHubIssueResult, GitHubUserResult
 
 logger = logging.getLogger(__name__)
 

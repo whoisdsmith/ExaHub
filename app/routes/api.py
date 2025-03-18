@@ -1,7 +1,7 @@
+from app.services.similarity_service import SimilarityService
 from flask import Blueprint, request, jsonify, current_app
-from exa_github_search.app.services.similarity_service import SimilarityService
 import requests
-from exa_github_search.app import limiter
+from app import limiter
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 

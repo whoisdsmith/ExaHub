@@ -93,7 +93,7 @@ def create_app(test_config=None):
     limiter.init_app(app)
 
     # Register blueprints
-    from exa_github_search.app.routes import main, search, api
+    from app.routes import main, search, api
     app.register_blueprint(main.bp)
     app.register_blueprint(search.bp)
     app.register_blueprint(api.bp)

@@ -28,6 +28,7 @@ venv/
 env/
 ENV/
 .env
+new_venv
 
 # IDE specific files
 .idea/
@@ -51,3 +52,6 @@ results_*.csv
 
 # API keys (just in case)
 *_api_key.txt
+
+instance/
+

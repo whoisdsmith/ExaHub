@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from exa_github_search.app import create_app
+from app import create_app
 
 # Load environment variables from .env file if it exists
 load_dotenv()

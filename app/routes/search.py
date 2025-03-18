@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, current_app, jsonify, abort
-from exa_github_search.app.models.search_params import GitHubSearchParams
-from exa_github_search.app.services.search_service import SearchService
-from exa_github_search.app import limiter
+from app.models.search_params import GitHubSearchParams
+from app.services.search_service import SearchService
+from app import limiter
 
 bp = Blueprint('search', __name__, url_prefix='/search')
 
