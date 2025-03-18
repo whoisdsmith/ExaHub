@@ -66,8 +66,7 @@ def similarity_search():
             language=language if language else None,
             start_date=start_date,
             end_date=end_date,
-            text=include_snippets,
-            highlight=highlight
+            text=include_snippets
         )
 
         # Convert results to serializable format
@@ -79,8 +78,7 @@ def similarity_search():
                 'score': result.score,
                 'published_date': getattr(result, 'published_date', None),
                 'domain': getattr(result, 'domain', None) if include_domains else None,
-                'text': getattr(result, 'text', None) if include_snippets else None,
-                'highlighted_text': getattr(result, 'highlighted_text', None) if highlight and include_snippets else None
+                'text': getattr(result, 'text', None) if include_snippets else None
             }
             serializable_results.append(res_dict)
 

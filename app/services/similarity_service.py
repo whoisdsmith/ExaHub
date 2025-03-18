@@ -90,8 +90,7 @@ class SimilarityService:
                 "type": search_type,
                 "use_autoprompt": use_autoprompt,
                 "num_results": num_results,
-                "text": text,
-                "highlight": highlight
+                "text": text
             }
 
             # Add optional parameters
