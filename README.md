@@ -1,14 +1,6 @@
+![ExaHub Banner](banner.svg)
+
 # 🚀 ExaHub: Enhanced GitHub Search
-
-<div align="center">
-
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![Flask](https://img.shields.io/badge/flask-2.3.3-green.svg)](https://flask.palletsprojects.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub API](https://img.shields.io/badge/GitHub%20API-v3-orange.svg)](https://docs.github.com/en/rest)
-[![Exa AI](https://img.shields.io/badge/Exa%20AI-1.0.6-purple.svg)](https://exa.ai)
-
-<img src="https://via.placeholder.com/800x400?text=ExaHub" alt="ExaHub Banner" width="800px">
 
 ### Supercharge your GitHub searches with semantic AI
 

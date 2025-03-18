@@ -1,0 +1,45 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Gradient -->
+  <defs>
+    <linearGradient id="darkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b0c10" />
+      <stop offset="100%" stop-color="#1f2833" />
+    </linearGradient>
+  </defs>
+
+  <!-- Dark Gradient Background -->
+  <rect width="1280" height="640" fill="url(#darkGrad)" />
+
+  <!-- Sparkling Stars (random circles) -->
+  <circle cx="200" cy="100" r="2" fill="#ffffff" opacity="0.8" />
+  <circle cx="400" cy="230" r="3" fill="#ffffff" opacity="0.8" />
+  <circle cx="600" cy="70" r="2" fill="#ffffff" opacity="0.8" />
+  <circle cx="900" cy="150" r="2" fill="#ffffff" opacity="0.8" />
+  <circle cx="1100" cy="300" r="3" fill="#ffffff" opacity="0.8" />
+  <circle cx="300" cy="400" r="2" fill="#ffffff" opacity="0.8" />
+  <circle cx="750" cy="500" r="2" fill="#ffffff" opacity="0.8" />
+  <circle cx="100" cy="550" r="3" fill="#ffffff" opacity="0.8" />
+
+  <!-- Title -->
+  <text
+    x="50%"
+    y="45%"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="60"
+    font-weight="bold"
+    fill="#66fcf1">
+    🚀 ExaHub: Enhanced GitHub Search
+  </text>
+
+  <!-- Subtitle -->
+  <text
+    x="50%"
+    y="55%"
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="32"
+    fill="#c5c6c7">
+    Supercharge your GitHub searches with semantic AI
+  </text>
+</svg>
